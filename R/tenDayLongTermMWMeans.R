@@ -33,16 +33,6 @@ NULL
 #' @export
 tenDayLongTermMWMeans <- function(variable, tstart, tend, cores = 10, timedate, clcall = NULL){
 
-  # load packages
-  require("foreach")
-  require("doParallel")
-  require("parallel")
-
-  # test if provided time argument fits number of layers
-  if(nlayers(variable) != length(timedate)){
-    stop("length(time) has to equal nlayers(variable)")
-  }
-
   # extract time information from variable
   z <- timedate
 
