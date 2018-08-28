@@ -23,8 +23,9 @@ NULL
 #' @param timedate A \code{POSIXct} vector containing the time
 #' information for each band/layer of \code{variable}.
 #' @param clcall A function passed to \code{\link[parallel]{clusterCall}}.
-#' @return A list with the first element representing the aggregated
-#' raster time series with daily mean values as a \code{RasterBrick} and
+#' @return A list with the first element representing the relative air humidity [%]
+#' time series with as a \code{RasterBrick} with the same temporal resultution as
+#' \code{dt} and \code{t} and
 #' the second element a \code{POSIXct} vector containing the date information
 #' (i.e. the days).
 #' @seealso
