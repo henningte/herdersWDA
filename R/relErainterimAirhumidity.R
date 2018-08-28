@@ -26,8 +26,7 @@ NULL
 #' @return A list with the first element representing the relative air humidity [%]
 #' time series with as a \code{RasterBrick} with the same temporal resultution as
 #' \code{dt} and \code{t} and
-#' the second element a \code{POSIXct} vector containing the date information
-#' (i.e. the days).
+#' the second element a \code{POSIXct} vector containing the time information.
 #' @seealso
 #' @examples #
 #' @export
