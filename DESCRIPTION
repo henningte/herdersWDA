@@ -1,0 +1,14 @@
+Package: herdersWDA
+Title: Functions for Raster Based Weather Time Series Analysis
+Version: 0.0.0.9000
+Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Description: herdersWDA provides functions in order to manipulate raster based 
+weather data time series.
+Depends: 
+  R (>= 3.2.0),
+  sp,
+  raster,
+  ncdf4
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
