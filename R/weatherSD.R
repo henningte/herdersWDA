@@ -26,7 +26,7 @@ NULL
 weatherSD <- function(variable, tstart = NULL, tend = NULL, resolution = "monthly", timedate, cores = 10, clcall = NULL){
 
   # duplicate entries for 02-28 for non-leap years if resolution = mwtendays
-  if(resolution = "mwtendays"){
+  if(resolution == "mwtendays"){
 
     # get number of days for each year
     daysperyear <- list(unique(strftime(timedate, format = "%Y")), tapply(timedate, strftime(timedate, format = "%Y"), length))
