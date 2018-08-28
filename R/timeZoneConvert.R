@@ -1,5 +1,3 @@
-### 20180810
-
 #'@importFrom Rdpack reprompt
 NULL
 
@@ -10,7 +8,7 @@ NULL
 #'
 #' @param variable A \code{character} vector convertable to a \code{POSIXct} object.
 #' @param timezone A character value representing a timezone
-#' (\code{\link{timezones}[base]}).
+#' (\code{\link[base]{timezones}}).
 #' @return A \code{POSIXct} vector with converted time and date information.
 #' @seealso
 #' @examples #
