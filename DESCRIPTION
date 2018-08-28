@@ -8,7 +8,12 @@ Depends:
   R (>= 3.2.0),
   sp,
   raster,
-  ncdf4
+  ncdf4,
+  foreach,
+  doParallel
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
+RdMacros:
+    Rdpack
+RoxygenNote: 6.0.1
