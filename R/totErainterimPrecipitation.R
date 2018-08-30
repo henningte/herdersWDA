@@ -56,5 +56,5 @@ totErainterimPrecipitation <- function(precipitation, cores = 10, timedate, clca
   stopCluster(cl)
 
   # return result
-  return(list(variable = precipitation.sum, day = z))
+  return(list(variable = precipitation.sum, day = unique(z)))
 }
