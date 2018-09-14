@@ -77,26 +77,18 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
 
     })
 
-    # assign each day to a ten day-interval
-    tendayintervals <-
-      do.call(c, sapply(seq_along(days), function(x){
-        names(tendayintervals[[x]]) <- days[[x]]
-        return(tendayintervals[[x]])
-      }))
+    # get the date of the first and last days of each ten day interval
+    a <- c()
+    b <- c()
+    for(year_i in seq_along(days)){
 
-    # get unique ten day-intervals for each data value in track
-    timeinterval <- rep(0, length(tendayintervals))
-    days <- names(tendayintervals)
-    iter2 <- 0
-    for(day_i in names(tendayintervals)){
-      timeinterval[which(days == day_i)] <- tendayintervals[which(names(tendayintervals) == day_i)] - iter2*36
+      a <- c(a, tapply(strftime(days[[year_i]], "%Y-%m-%d"), tendayintervals[[year_i]], function(x) as.character(x[1])))
+      b <- c(b, tapply(strftime(days[[year_i]], "%Y-%m-%d"), tendayintervals[[year_i]], function(x) as.character(x[length(x)])))
+
     }
 
-    # convert to time
-    timeinterval <- list(tapply(timedate[timerange], timeinterval, function(x) x[1]),
-                         tapply(timedate[timerange], timeinterval, function(x) x[length(x)]))
-
-    return(timeinterval)
+    # return the result
+    list(a, b)
 
   }
 
@@ -122,12 +114,18 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
          },
          fixedtendays = {indices <- assignfixedtendayinterval(timedate, timerange)
          },
-         mwtendays = {indices <- list(timedate[timerange], timedate[timerange] + 9)
+         mwtendays = {indices <- list(as.character(timedate[timerange]), as.character(strftime(timedate[timerange] + 9*24*60*60, "%Y-%m-%d")))
          }
   )
 
   # get numerical indices
   indices1 <- lapply(indices, function(x) which(as.character(timedate[timerange]) %in% x))
+
+  # remove entries that do not fit within the timerange(if the last day of the last tdi is not within the specified data)
+  if(length(indices1[[2]]) < length(indices1[[1]])){
+    indices1[[1]] <- indices1[[1]][-length(indices1[[1]])]
+  }
+
 
   # prune variable to timerange
   variable <- variable[[timerange]]
@@ -157,3 +155,5 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
   return(list(variable = meanvariable, time = indices[[1]]))
 
 }
+# monthly resolution seems to work
+# corrected the function for fixed tdi
