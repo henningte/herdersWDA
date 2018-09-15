@@ -121,11 +121,17 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
   # get numerical indices
   indices1 <- lapply(indices, function(x) which(as.character(timedate[timerange]) %in% x))
 
-  # remove entries that do not fit within the timerange(if the last day of the last tdi is not within the specified data)
+  # remove entries that do not fit within the timerange(if the last day of the last tdi(s) is (are) not within the specified data)
   if(length(indices1[[2]]) < length(indices1[[1]])){
-    indices1[[1]] <- indices1[[1]][-length(indices1[[1]])]
+    indices1[[1]] <- indices1[[1]][1:length(indices1[[2]])]
   }
 
+  # prune indices (will be exported as time information)
+  index1 <- which(indices[[1]] %in% as.character(timedate[timerange]))[1]
+  index2 <- rev(which(indices[[2]] %in% as.character(timedate[timerange])))[1]
+  indices <- lapply(indices, function(x){
+    x[index1:index2]
+  })
 
   # prune variable to timerange
   variable <- variable[[timerange]]
@@ -156,4 +162,6 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
 
 }
 # monthly resolution seems to work
-# corrected the function for fixed tdi
+# corrected the function for fixed tdi, works now
+# mwtendays seems to work
+# it has to be tested if the function also works if timedate does not begin at the start of a year
