@@ -133,6 +133,15 @@ weatherMean <- function(variable, tstart = NULL, tend = NULL, resolution = "mont
     x[index1:index2]
   })
 
+  # remove entries that do not fit within the timerange(if the last day of the last tdi(s) is (are) not within the specified data)
+  indices <- lapply(seq_along(indices), function(x){
+    if(length(indices[[x]]) > length(indices1[[x]])){
+      indices[[x]][1:length(indices1[[x]])]
+    }else{
+      indices[[x]]
+    }
+  })
+
   # prune variable to timerange
   variable <- variable[[timerange]]
 
