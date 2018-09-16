@@ -25,27 +25,36 @@ NULL
 #' @export
 weatherSD <- function(variable, tstart = NULL, tend = NULL, resolution = "monthly", timedate, cores = 10, clcall = NULL){
 
-  # duplicate entries for 02-28 for non-leap years if resolution = mwtendays
-  if(resolution == "mwtendays"){
-
-    # get number of days for each year
-    daysperyear <- list(unique(strftime(timedate, format = "%Y")), tapply(timedate, strftime(timedate, format = "%Y"), length))
-
-    timedate1 <- NULL
-    index <- 1
-    for(i in seq_along(daysperyear[[1]])){
-
-      if(daysperyear[[2]][i] == 365){
-        timedate1 <- c(timedate1, timedate[c(index:(index + 58), index + 58, (index + 59):(index + 365))])
-        index <- index + 365
-      }else{
-        timedate1 <- c(timedate1, timedate[index, index + 366])
-        index <- index + 366
-      }
-
-    }
-
-  }
+  switch(resolution,
+         monthly = {
+           # extract months from timedate
+           months <- strftime(timedate, "%m")
+           # group layer indices according to months
+           indices1 <- tapply(seq_along(months), months, function(x) x)
+         },
+         fixedtendays = {
+           # extract days from timedate
+           days <- strftime(timedate, "%m-%d")
+           # group layer indices according to fixed tend-day intervals
+           indices1 <- tapply(seq_along(days), days, function(x) x)
+         },
+         mwtendays = {
+           # extract days from timedate
+           days <- strftime(timedate, "%m-%d")
+           # group layer indices according to moving window tend-day intervals
+           indices1 <- tapply(seq_along(days), days, function(x) x)
+           # search 02-28
+           index1 <- which(days == "02-28")
+           # search if 02-29 occurs
+           index2 <- days[index1 + 1] == "02-29"
+           # insert dummy days
+           index3 <- as.numeric(index2)
+           index3[index2] <- indices1[["02-29"]]
+           index3[!index2] <- indices1[["02-28"]][!index2]
+           # prune index3
+           index3 <- index3[which(index3 <= length(days))]
+           indices1[["02-29"]] <- index3
+         })
 
   # set up cluster
   cl <- makeCluster(cores, outfile="", type = "PSOCK")
@@ -55,15 +64,15 @@ weatherSD <- function(variable, tstart = NULL, tend = NULL, resolution = "monthl
   }
 
   # compute mean values
-  meanvariable <-
+  sdvariable <-
     foreach(i = seq_along(indices1), .export = c("variable", "indices1"), .combine = stack, .packages = "raster") %dopar% {
 
-      calc(variable[[indices1[[i]][1]:indices1[[i]][2]]], fun = mean)
+      calc(variable[[indices1[[i]]]], fun = sd)
 
     }
 
   # convert to RasterBrick
-  meanvariable <- brick(meanvariable)
+  sdvariable <- brick(sdvariable)
 
   # stop cluster
   stopCluster(cl)
@@ -72,3 +81,6 @@ weatherSD <- function(variable, tstart = NULL, tend = NULL, resolution = "monthl
   return(list(meanvariable, indices[[1]]))
 
 }
+# monthly seems to work now
+# fixedtendays seems to work now
+# mvtendays seems to work now
