@@ -78,7 +78,7 @@ weatherSD <- function(variable, tstart = NULL, tend = NULL, resolution = "monthl
   stopCluster(cl)
 
   # return result
-  return(list(meanvariable, indices[[1]]))
+  return(list(sdvariable, indices[[1]]))
 
 }
 # monthly seems to work now
