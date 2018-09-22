@@ -30,8 +30,11 @@ NULL
 #' @param dailymeanrh A \code{RasterBrick} or \code{RasterStack} object with
 #' daily mean relative air humidity values within the target time period. See the
 #' details section.
-#' @param naturalzones A \code{SpatialPolygonsDataFrame} object containing information
-#' on the natural zones.
+#' @param naturalzonesraster A \code{RasterLayer} object containing information
+#' on landcover classes for which additional criteria concerning drought conditions are
+#' defined. Classes that should not be considered must have the value "0". Mountainous
+#' regions must have the value "1". Forest steppe and steppe must have the value "2".
+#' The gobi-desert must have the value "3".
 #' @param resolution A character value indicating the temporal resolution of the
 #' \code{Raster*} time series data for the target time period (\code{precipitation} and
 #' \code{airtemperature}). One of \code{"monthly"}, \code{"ftdi"} (fixed ten-day
@@ -58,7 +61,11 @@ NULL
 #' @seealso
 #' @examples #
 #' @export
-evaluateDroughtNema <- function(){
+evaluateDroughtNema <- function(precipitation, ltmprecipitation, airtemperature,
+                                ltmairtemperature, ltsdairtemperature, dailymaxairtemperature,
+                                dailymeanrh, naturalzonesraster, resolution = "monthly",
+                                timedate_aggregated, timedate_daily, cores = 10, clcall = NULL
+                                ){
 
   # group values of timedate_daily according to timedate_aggregated
   switch(resolution,
@@ -77,9 +84,6 @@ evaluateDroughtNema <- function(){
          mwtendays = {
             indices1 <- seq_along(days)[1:(length(days) - 9)]
          })
-
-  # rasterize naturalzones
-  naturalzonesraster <- rasterize(naturalzones, precipitation[[1]], field = "a") # has to be adjusted
 
   # create a dummy raster for the classification of near drought conditions
   rasterdrought <- precipitation[[1]]
@@ -133,9 +137,9 @@ evaluateDroughtNema <- function(){
                                     z = rasterdroughtdayi,
                                     fun = function(x, y ,z){
 
-                                    z[which((x > (273.15 + 20) & naturalzonesraster == "mountain")|
-                                           (x > (273.15 + 30) & naturalzonesraster == "steppe")|
-                                           (x > (273.15 + 32) & naturalzonesraster == "desert"))] <- 1 # values have to be adjusted
+                                    z[which((x > (273.15 + 20) & naturalzonesraster == 1)|
+                                           (x > (273.15 + 30) & naturalzonesraster == 2)|
+                                           (x > (273.15 + 32) & naturalzonesraster == 3))] <- 1
 
                                     return(z)
 
