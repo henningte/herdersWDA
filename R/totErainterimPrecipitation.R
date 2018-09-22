@@ -3,8 +3,7 @@ NULL
 
 #' Calculates cumulative precipitation raster time series.
 #'
-#' \code{totErainterimPrecipitation} computes the total precipitation
-#' sum of a raster based time series
+#' \code{dailySums} computes total daily sums of a raster based time series
 #' (\code{RasterBrick} or \code{RasterStack} object, see:
 #' \code{\link[raster]{Raster-class}}) on a sub-daily basis by computing
 #' the sum of each raster cell for a specified temporal resolution.
@@ -24,7 +23,7 @@ NULL
 #' @seealso
 #' @examples #
 #' @export
-totErainterimPrecipitation <- function(precipitation, cores = 10, timedate, clcall = NULL){
+dailySums <- function(variable, cores = 10, timedate, clcall = NULL){
 
   # extract time information from timedate
   z <- strftime(timedate, format = "%Y-%m-%d")
@@ -36,25 +35,26 @@ totErainterimPrecipitation <- function(precipitation, cores = 10, timedate, clca
     clusterCall(cl, clcall)
   }
 
+  # define an indexing parameter over which to iterate (100 days per iteration)
+  steps <- seq(1, nlayers(variable), 100)
+  steps[length(steps)] <- nlayers(variable)
+
   # calculate precipitation sum
-  precipitation.sum <-
-    foreach(step_i = unique(z), .packages = c("raster"), .combine = stack) %dopar%{
+  dailysum <-
+    foreach(step_i = seq_along(steps), .packages = c("raster"), .combine = stack, .multicombine = TRUE, .export = c("z", "steps")) %dopar%{
 
-      if(length(which(z == step_i) > 1)){
-        precipitation.sum.step <- sum(precipitation[[which(z == step_i)]])
-      }else{
-        precipitation.sum.step <- precipitation[[which(z == step_i)]]
-      }
-
+      dailysumstep <- stackApply(x = variable[[steps[step_i]:(steps[step_i+1]-1)]],
+                      indices = as.integer(z[steps[step_i]:(steps[step_i+1]-1)]) - (as.integer(z[steps[step_i]])+1),
+                      fun = sum)
 
     }
 
   # convert to RasterBrick object
-  precipitation.sum <- brick(precipitation.sum)
+  dailysum <- brick(dailysum)
 
   # stop cluster
   stopCluster(cl)
 
   # return result
-  return(list(variable = precipitation.sum, day = unique(z)))
+  return(list(variable = dailysum, day = unique(z)))
 }
