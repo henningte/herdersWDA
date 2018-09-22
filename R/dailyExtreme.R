@@ -1,4 +1,6 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
+#'@import raster
 NULL
 
 #' Extracts extreme values from sub-daily raster time series.

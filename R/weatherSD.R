@@ -1,4 +1,6 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
+#'@import raster
 NULL
 
 #' Computes the standard deviation of raster time series.

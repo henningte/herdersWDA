@@ -1,4 +1,6 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
+#'@import raster
 NULL
 
 #' Computes long-term monthly means of raster time series.

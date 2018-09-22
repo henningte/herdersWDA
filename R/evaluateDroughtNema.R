@@ -1,4 +1,5 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
 #'@import raster
 NULL
 

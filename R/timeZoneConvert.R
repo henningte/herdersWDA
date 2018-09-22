@@ -1,4 +1,5 @@
 #'@importFrom Rdpack reprompt
+#'@import raster
 NULL
 
 #' Converts the time zone of a date and time vector.

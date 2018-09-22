@@ -1,4 +1,6 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
+#'@import raster
 NULL
 
 #' Computes the relative air humidity for raster based time series.
@@ -31,11 +33,6 @@ NULL
 #' @examples #
 #' @export
 relErainterimAirhumidity <- function(dt, t, interval = NULL, cores = 10, timedate, clcall = NULL){
-
-  # load packages
-  require("foreach")
-  require("doParallel")
-  require("parallel")
 
   # define function for Teten's formula
   tetens <- function(temp, temp0 = 273.16, a1 = 611.21, a3 = 17.502, a4 = 32.19){

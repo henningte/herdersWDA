@@ -1,4 +1,6 @@
 #'@importFrom Rdpack reprompt
+#'@import doParallel
+#'@import raster
 NULL
 
 #' Aggregates daily raster time series.
