@@ -137,7 +137,7 @@ evaluateDroughtNema <- function(precipitation, ltmprecipitation, airtemperature,
            timerange <- 1:length(timedate_daily)
            attr(timedate_daily, "tzone") <- "UTC"
            indices <- assignfixedtendayinterval(timedate = timedate_daily, timerange)
-           indices <- lapply(indices, function(x) which(as.character(timedate[timerange]) %in% x))
+           indices <- lapply(indices, function(x) which(as.character(timedate_daily[timerange]) %in% x))
            indices3 <- do.call(c, sapply(seq_along(indices[[1]]), function(x){
              rep(x, length(indices[[1]][x]: indices[[2]][x]))
            }))
