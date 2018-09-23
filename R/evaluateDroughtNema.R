@@ -68,134 +68,197 @@ evaluateDroughtNema <- function(precipitation, ltmprecipitation, airtemperature,
                                 timedate_aggregated, timedate_daily, cores = 10, clcall = NULL
                                 ){
 
+  # function in order to classify on a ten-day interval resolution
+  assignfixedtendayinterval <- function(timedate, timerange){
+
+    # get the years covered
+    years <- unique(strftime(timedate[timerange], format = "%Y"))
+
+    # get the number of days in each year
+    days <- list()
+    for(year_i in seq_along(years)){
+      days[[year_i]] <- seq(as.POSIXct(paste0(years[year_i], "-01-01"), tz = attr(timedate, "tzone")), as.POSIXct(paste0(years[year_i], "-12-31"), tz = attr(timedate, "tzone")), "day")
+    }
+
+    # create a list with indices for days
+    tendayintervals <- lapply(seq_along(days), function(y){
+
+      # extract months
+      months <- strftime(days[[y]], format = "%y-%m")
+
+      # define an additional offset value if data for several years exist there
+      offset <- (y - 1) * 36
+
+      # get a vector with ten day-intervals
+      tdi <- do.call(c, as.vector(sapply(seq_along(table(months)), function(x){
+
+        # get indices of ten day-intervals
+        if(which(names(table(months)) == names(table(months)[x])) == 1){
+          indices <- 1:3
+        }else{
+          indices <- seq((which(names(table(months)) == names(table(months)[x]))-1) * 3 + 1, (which(names(table(months)) == names(table(months)[x]))-1) * 3 + 3)
+        }
+
+        c(rep(indices[1], 10), rep(indices[2], 10), rep(indices[3], table(months)[x] - 20))
+
+      }))) + offset
+
+    })
+
+    # get the date of the first and last days of each ten day interval
+    a <- c()
+    b <- c()
+    for(year_i in seq_along(days)){
+
+      a <- c(a, tapply(strftime(days[[year_i]], "%Y-%m-%d"), tendayintervals[[year_i]], function(x) as.character(x[1])))
+      b <- c(b, tapply(strftime(days[[year_i]], "%Y-%m-%d"), tendayintervals[[year_i]], function(x) as.character(x[length(x)])))
+
+    }
+
+    # return the result
+    list(a, b)
+
+  }
+
   # group values of timedate_daily according to timedate_aggregated
   switch(resolution,
          monthly = {
-            months <- strftime(timedate_daily, "%Y-%m")
-            indices1 <- sapply(seq_along(unique(months)), function(x){
-              rep(x, length(which(months == unique(months)[x])))
-            })
+           months <- strftime(timedate_daily, "%Y-%m")
+           indices1 <- sapply(seq_along(unique(months)), function(x){
+             rep(x, length(which(months == unique(months)[x])))
+           })
+           indices2 <- as.integer(as.factor(months))
+           while(length(which(indices2 > 12)) > 0){
+             indices2[which(indices2 > 12)] <- indices2[which(indices2 > 12)] - 12
+           }
+           indices3 <- as.integer(as.factor(months))
          },
          fixedtendays = {
-            timerange <- 1:length(timedate_daily)
-            indices <- assignfixedtendayinterval(timedate_daily, timerange)
-            # has to be finished
-
+           timerange <- 1:length(timedate_daily)
+           attr(timedate_daily, "tzone") <- "UTC"
+           indices <- assignfixedtendayinterval(timedate = timedate_daily, timerange)
+           indices <- lapply(indices, function(x) which(as.character(timedate[timerange]) %in% x))
+           indices3 <- do.call(c, sapply(seq_along(indices[[1]]), function(x){
+             rep(x, length(indices[[1]][x]: indices[[2]][x]))
+           }))
+           indices2 <- indices3
+           while(length(which(indices2 > 36)) > 0){
+             indices2[which(indices2 > 36)] <- indices2[which(indices2 > 36)] - 36
+           }
          },
          mwtendays = {
-            indices1 <- seq_along(days)[1:(length(days) - 9)]
+           indices3 <- seq_along(timedate_daily)[1:(length(timedate_daily) - 9)]
+           indices2 <- indices3
+           while(length(which(indices2 > 366)) > 0){
+             indices2[which(indices2 > 366)] <- indices2[which(indices2 > 366)] - 366
+           }
          })
 
   # create a dummy raster for the classification of near drought conditions
   rasterdrought <- precipitation[[1]]
   values(rasterdrought) <- 0
 
+  # set up cluster
+  cl <- makeCluster(cores, outfile="", type = "PSOCK")
+  registerDoParallel(cl)
+  if(!is.null(clcall)){
+    clusterCall(cl, clcall)
+  }
+
   droughtclassified <-
-    foreach(day_i = seq_along(timedate_daily), .multicombine = TRUE) %dopar%{
+    foreach(day_i = seq_along(timedate_daily), .multicombine = TRUE, .combine = stack, .packages = "raster") %dopar%{
 
       # get a raster to store the results in
-      rasterdroughtdayi <- rasterneardrought
+      rasterdroughtdayi <- rasterdrought
 
-      airtemperaturethreshold2 <- over(x = airtemperature[[indices1[day_i]]],
-                                       y = ltsdairtemperature[[indices1[day_i]]],
-                                       fun = function(x, y) x + y^2)
+      # value plus two times the standard deviation
+      airtemperaturethreshold2 <- overlay(x = airtemperature[[indices3[day_i]]],
+                                          y = ltsdairtemperature[[indices2[day_i]]],
+                                          fun = function(x, y) x + y^2)
 
       # classify weather data as near drought conditions
-      neardrought <- overlay(x = precipitation[[indices1[day_i]]],
-                             y = airtemperature[[indices1[day_i]]],
-                             x1 = ltmprecipitation[[indices1[day_i]]],
-                             y1 = ltmairtemperature[[indices1[day_i]]],
-                             y2 = airtemperaturethreshold2,
-                             nd = rasterdroughtdayi,
-                             fun = function(x, y, x1, y1, y2, nd){
 
-                               # classificaton based on the precipitation
-                               precipitationthreshold <- calc(y1, fun = function(z) z - 0.2*z)
-                               precipitationthresholdindices <- which(y <= precipitationthreshold)
+      # define the variables
+      x = precipitation[[indices3[day_i]]]
+      y = airtemperature[[indices3[day_i]]]
+      x1 = ltmprecipitation[[indices2[day_i]]]
+      y1 = ltmairtemperature[[indices2[day_i]]]
+      y2 = airtemperaturethreshold2
+      neardrought = rasterdroughtdayi
 
-                               # classification based on the air temperature
-                               airtemperaturethreshold1 <- calc(y1, fun = function(z) z + 1)
-                               airtemperaturethresholdindices <- which(y > airtemperaturethreshold1 | y > y2)
+      # classificaton based on the precipitation
+      precipitationthreshold <- calc(x1, fun = function(z) z - 0.2*z)
+      precipitationthresholdindices <- which(values(x) <= values(precipitationthreshold))
 
-                               # combine indices
-                               combinedindices <- c(precipitationthresholdindices, airtemperaturethresholdindices)
-                               combinedindices <- combinedindices[duplicated(combinedindices)]
+      # classification based on the air temperature
+      airtemperaturethreshold1 <- calc(y1, fun = function(z) z + 1)
+      airtemperaturethresholdindices <- which(values(y) > values(airtemperaturethreshold1) | values(y) > values(y2))
 
-                               # set classificator values
-                               nd[combinedindices] <- 1
+      # combine indices (temperature and precipitation related criteria have both to be met)
+      combinedindices <- c(precipitationthresholdindices[which(precipitationthresholdindices %in% airtemperaturethresholdindices)])
 
-                               # return nd
-                               return(nd)
+      # set classificator values
+      neardrought[combinedindices] <- 1
 
-                             })
+      x = dailymaxairtemperature[[day_i]]
+      y = naturalzonesraster
+      naturalzonesthreshold = rasterdroughtdayi
+      naturalzonesthreshold[which((values(x) > (273.15 + 20) & values(naturalzonesraster) == 1)|
+                                    (values(x) > (273.15 + 30) & values(naturalzonesraster) == 2)|
+                                    (values(x) > (273.15 + 32) & values(naturalzonesraster) == 3))] <- 1
 
-      airtemperaturethreshold2 <- over(x = airtemperature[[indices1[day_i]]],
-                                       y = ltsdairtemperature[[indices1[day_i]]],
-                                       fun = function(x, y) x + y^2*2)
 
-      naturalzonesthreshold <- over(x = dailymaxairtemperature[[day_i]],
-                                    y = naturalzonesraster,
-                                    z = rasterdroughtdayi,
-                                    fun = function(x, y ,z){
-
-                                    z[which((x > (273.15 + 20) & naturalzonesraster == 1)|
-                                           (x > (273.15 + 30) & naturalzonesraster == 2)|
-                                           (x > (273.15 + 32) & naturalzonesraster == 3))] <- 1
-
-                                    return(z)
-
-                                   })
+      # value plus two times the standard deviation
+      airtemperaturethreshold2 <- overlay(x = airtemperature[[indices3[day_i]]],
+                                          y = ltsdairtemperature[[indices2[day_i]]],
+                                          fun = function(x, y) x + y^2*2)
 
       # classify weather data as drought conditions (main and additional)
-      drought <- overlay(x = precipitation[[indices1[day_i]]],
-                         y = airtemperature[[indices1[day_i]]],
-                         x1 = ltmprecipitation[[indices1[day_i]]],
-                         y1 = ltmairtemperature[[indices1[day_i]]],
-                         y2 = airtemperaturethreshold2,
-                         rh = dailymeanrh[day_i],
-                         nz = naturalzonesthreshold,
-                         nd = rasterdroughtdayi,
-                         fun = function(x, y, x1, y1, y2, rh, nz, nd){
+      x = precipitation[[indices3[day_i]]]
+      y = airtemperature[[indices3[day_i]]]
+      x1 = ltmprecipitation[[indices2[day_i]]]
+      y1 = ltmairtemperature[[indices2[day_i]]]
+      y2 = airtemperaturethreshold2
+      rh = dailymeanrh[[day_i]]
+      nz = naturalzonesthreshold
+      drought = rasterdroughtdayi
 
-                           # classificaton based on the precipitation
-                           precipitationthreshold <- calc(y1, fun = function(z) z - 0.5*z)
-                           precipitationthresholdindices <- which(y <= precipitationthreshold)
+      # classificaton based on the precipitation
+      precipitationthreshold <- calc(x1, fun = function(z) z - 0.5*z)
+      precipitationthresholdindices <- which(values(x) <= values(precipitationthreshold))
 
-                           # classification based on the air temperature
-                           airtemperaturethreshold1 <- calc(y1, fun = function(z) z + 2)
-                           airtemperaturethresholdindices <- which(y > airtemperaturethreshold1 | y > y2)
+      # classification based on the air temperature
+      airtemperaturethreshold1 <- calc(y1, fun = function(z) z + 2)
+      airtemperaturethresholdindices <- which(values(y) > values(airtemperaturethreshold1) | values(y) > values(y2))
 
-                           # additionaly criterium: rh
-                           rhthresholdindices <- which(rh < 30)
+      # additionaly criterium: rh
+      rhthresholdindices <- which(values(rh) < 30)
 
-                           # additional criterium: nz
-                           naturalzonesthresholdindices <- which(naturalzonesthreshold == 1)
+      # additional criterium: nz
+      naturalzonesthresholdindices <- which(values(naturalzonesthreshold) == 1)
 
-                           # combine indices and consider additional criteria
-                           combinedindices <- c(precipitationthresholdindices, airtemperaturethresholdindices)
-                           combinedindices <- combinedindices[duplicated(combinedindices)]
-                           combinedindices <- unique(c(combinedindices, rhthresholdindices, naturalzonesthresholdindices))
+      # combine indices and consider additional criteria
+      combinedindices <- c(precipitationthresholdindices[which(precipitationthresholdindices %in% airtemperaturethresholdindices)])
+      combinedindices <- unique(c(combinedindices, rhthresholdindices, naturalzonesthresholdindices))
 
-                           # set classificator values
-                           nd[combinedindices] <- 1
-
-                           # return nd
-                           return(nd)
-
-                         })
+      # set classificator values
+      drought[combinedindices] <- 1
 
       # merge the classification results
-      overlay(x = neardrought,
-              y = drought,
-              nd = rasterdroughtdayi,
-              fun = function(x, y, nd){
+      droughtclassification <- rasterdroughtdayi
+      droughtclassification[which(values(neardrought) == 1)] <- 2
+      droughtclassification[which(values(drought) == 1)] <- 3
 
-                nd[which(x == 1)] <- 2
-                nd[which(y == 1)] <- 3
-                return(nd)
+      return(droughtclassification)
+    }
 
-              })
+  # convert to RasterBrick object
+  droughtclassified <- brick(droughtclassified)
 
-  }
+  # stop cluster
+  stopCluster(cl)
+
+  # return the result
+  return(list(droughtclassified = droughtclassified, days = timedate_daily))
 
 }
