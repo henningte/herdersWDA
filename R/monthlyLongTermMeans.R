@@ -27,7 +27,7 @@ NULL
 #' @seealso
 #' @examples #
 #' @export
-monthlyLongTermMeans <- function(variable, tstart, tend, cores = 10, timedate, clcall = NULL){
+monthlyLongTermMeans <- function(variable, tstart, tend, cores = 12, timedate, clcall = NULL){
 
   # extract time information from variable
   z <- timedate
