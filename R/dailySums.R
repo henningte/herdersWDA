@@ -36,16 +36,24 @@ dailySums <- function(variable, cores = 10, timedate, clcall = NULL){
   }
 
   # define an indexing parameter over which to iterate (100 days per iteration)
-  steps <- seq(1, nlayers(variable), 100)
-  steps[length(steps)] <- nlayers(variable)
+  indices1 <- as.integer(as.factor(z))
+  indices <- do.call(rbind, tapply(seq_along(indices1), indices1, function(x)x))
+  steps <- seq(1, nrow(indices), 50)
+  steps[length(steps)] <- nrow(indices)
 
   # calculate precipitation sum
   dailysum <-
-    foreach(step_i = seq_along(steps), .packages = c("raster"), .combine = stack, .multicombine = TRUE, .export = c("z", "steps")) %dopar%{
+    foreach(step_i = seq_along(steps)[-length(steps)], .packages = c("raster"), .combine = stack, .multicombine = TRUE, .export = c("z", "steps", "indices", "indices1")) %dopar%{
 
-      dailysumstep <- stackApply(x = variable[[steps[step_i]:(steps[step_i+1]-1)]],
-                      indices = as.integer(z[steps[step_i]:(steps[step_i+1]-1)]) - (as.integer(z[steps[step_i]])+1),
-                      fun = sum)
+      if(step_i == rev(seq_along(steps)[-length(steps)])[1]){
+        currentindex <- indices[steps[step_i], 1]:indices[steps[step_i+1], 2]
+      }else{
+        currentindex <- indices[steps[step_i], 1]:indices[steps[step_i+1]-1, 2]
+      }
+
+      stackApply(x = variable[[currentindex]],
+                 indices = indices1[currentindex],
+                 fun = sum)
 
     }
 
