@@ -74,7 +74,7 @@ intervalMean <- function(variable, tstart, tend, timedate, cores, clcall = NULL
     # assign each day to a ten day-interval
     tendayintervals <-
       do.call(c, sapply(seq_along(days), function(x){
-        names(tendayintervals[[x]]) <- days[[x]]
+        names(tendayintervals[[x]]) <- strftime(days[[x]], "%Y-%m-%d")
         return(tendayintervals[[x]])
       }))
 
