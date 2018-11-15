@@ -34,7 +34,7 @@ NULL
 windSpeedErainterim <- function(u10, v10, cores = 10, timedate, clcall = NULL){
 
   # extract time information from timedate
-  z <- strftime(timedate, format = "%Y-%m-%d")
+  z <- timedate
 
   # set up cluster
   cl <- makeCluster(cores, outfile="", type = "PSOCK")
@@ -43,21 +43,13 @@ windSpeedErainterim <- function(u10, v10, cores = 10, timedate, clcall = NULL){
     clusterCall(cl, clcall)
   }
 
-  # define an indexing parameter over which to iterate (100 days per iteration)
-  steps <- seq(1, nlayers(variable), 100)
-  steps[length(steps)] <- nlayers(variable)
-
   # calculate the wind speed
   windspeed <-
-    foreach(step_i = seq_along(steps), .packages = c("raster"), .combine = stack, .multicombine = TRUE, .export = c("z", "steps")) %dopar%{
-
-      windspeedstep <- do.call(stack, lapply(steps[step_i]:(steps[step_i+1]-1), function(x){
-
-        overlay(x = u10, y = v10, fun = function(x, y){
-          sqrt(x^2+y^2)
-        })
-
-      }))
+    foreach(step_i = seq_len(nlayers(u10)), .packages = c("raster"), .combine = stack, .multicombine = TRUE, .export = c("z")) %dopar%{
+      print(step_i)
+      overlay(x = u10[[step_i]], y = v10[[step_i]], fun = function(x, y, na.rm = TRUE){
+        sqrt(x^2+y^2)
+      })
 
     }
 
@@ -70,4 +62,4 @@ windSpeedErainterim <- function(u10, v10, cores = 10, timedate, clcall = NULL){
   # return result
   return(list(variable = windspeed, day = unique(z)))
 
-} # not tested yet!
+}
