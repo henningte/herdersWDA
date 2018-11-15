@@ -4,7 +4,7 @@
 \alias{monthlyLongTermMeans}
 \title{Computes long-term monthly means of raster time series.}
 \usage{
-monthlyLongTermMeans(variable, tstart, tend, cores = 10, timedate,
+monthlyLongTermMeans(variable, tstart, tend, cores = 12, timedate,
   clcall = NULL)
 }
 \arguments{
