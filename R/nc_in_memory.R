@@ -2,12 +2,12 @@
 #'@importFrom Rdpack reprompt
 #'@import rgdal
 #'@import raster
-#'#'@import ncdf4
+#'@import ncdf4
 NULL
 
 #' 'Forces' raster to be loaded in memory through an array.
 #'
-#' \code{nc_in_memory} creates an \code{array} from a netcdf file, swaps x- and y-axis and creates a  \code{RasterBrick} from the array. The resulting \code{RasterBrick} is then completely in memory. Uses a dummy \code{RasterStack} from the netcdf file for setting the extent and spatial reference.
+#' \code{nc_in_memory} creates an \code{array} from a netcdf file, swaps x- and y-axis and creates a  \code{RasterBrick} from the array. The resulting \code{RasterBrick} is then completely in memory. Uses a dummy \code{RasterStack} created from the netcdf file for setting the extent, spatial reference and time information.
 #' @param nc_path Character string indicating the path to the netcdf file to load.
 #' @param varname Character string indicating the name of the variable to load from the netcdf file.
 #' @return A \code{RasterBrick} object.
