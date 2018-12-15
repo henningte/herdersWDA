@@ -74,7 +74,7 @@ evaluateDroughtNemaTemepratureAdditional <- function(temperature, temperature_t,
   }
 
   # compute for each study period tdi where near drought and drought conditions existed according to the temeprature (additional criteria)
-  brickdroughttemperature <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("temperature", "tdi", "landcoverthresholdstemperature")) %dopar% {
+  brickdroughttemperature <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("temperature", "tdi", "landcoverthresholdstemperature")) %do% {
 
     # create a raster with the same spatial properties as temperature and fill all values with NA
     rasterdroughttemperature <- temperature[[1]]

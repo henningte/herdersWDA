@@ -53,7 +53,7 @@ evaluateDroughtNemaPrecipitation <- function(precipitation, ltmprecipitation, pr
   }
 
   # compute for each study period tdi where near drought and drought conditions existed according to the precipitation
-  brickdroughtprecipitation <- foreach(studytdi = seq_along(precipitation_t), .combine = brick, .multicombine = TRUE, .export = c("precipitation", "ltmprecipitation", "indextdi", "rasterdroughtprecipitation")) %dopar% {
+  brickdroughtprecipitation <- foreach(studytdi = seq_along(precipitation_t), .combine = brick, .multicombine = TRUE, .export = c("precipitation", "ltmprecipitation")) %do% {
 
     # create a raster with the same spatial properties as precipitation and fill all values with NA
     rasterdroughtprecipitation <- precipitation[[1]]
