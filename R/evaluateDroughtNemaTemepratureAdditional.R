@@ -74,7 +74,7 @@ evaluateDroughtNemaTemepratureAdditional <- function(temperature, temperature_t,
   }
 
   # compute for each study period tdi where near drought and drought conditions existed according to the temeprature (additional criteria)
-  brickdroughttemperature <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("temperature", "tdi", "landcoverthresholdstemperature")) %dopar% {
+  brickdroughttemperature <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("temperature", "tdi", "landcoverthresholdstemperature")) %do% {
 
     # create a raster with the same spatial properties as temperature and fill all values with NA
     rasterdroughttemperature <- temperature[[1]]
@@ -83,20 +83,17 @@ evaluateDroughtNemaTemepratureAdditional <- function(temperature, temperature_t,
     # assign the respective days to the current tdi
     index <- tdi[names(tdi) == studytdi]
 
-    # count the number of days with a relative air humidity < 30 %
-    a <- over(x = temperature[[index]], y = landcoverthresholdstemperature, fun = function(x, y){
-      x > y
+    # count the number of days with a temperature above specific thresholds
+    nodaystemperatureabovethreshold <- overlay(x = temperature[[index]], y = landcoverthresholdstemperature, fun = function(x, y){
+      ifelse(x > y, 1, 0)
     })
-
-    nodaystemperaturebelowthreshold <- calc(temperature[[index]], function(x){
-      length(which(x < 30))
-    })
+    nodaystemperatureabovethreshold <- calc(nodaystemperatureabovethreshold, sum)
 
     # evaluate the thresholds for the current tdi
-    ndroughttemperature_threshold_index <- which(values(nodaystemperaturebelowthreshold) > 5)
+    droughttemperature_threshold_index <- which(values(nodaystemperatureabovethreshold) > 5)
 
     # write the results to rasterdroughttemperature
-    rasterdroughttemperature[ndroughttemperature_threshold_index] <- 1
+    rasterdroughttemperature[droughttemperature_threshold_index] <- 1
 
     # return rasterdroughttemperature
     return(rasterdroughttemperature)
@@ -105,6 +102,5 @@ evaluateDroughtNemaTemepratureAdditional <- function(temperature, temperature_t,
 
   # return the raster along with the time information
   list(droughttemperature = brickdroughttemperature, time = tapply(tdi, names(tdi), function(x) temperature_t[x[1]]))
-
 
 }

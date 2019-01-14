@@ -5,7 +5,7 @@ NULL
 
 #' Evaluates Drought Conditions Relating to Air Humidity Based on Raster Time Series.
 #'
-#' \code{evaluateDroughtNemaAithumidity} evaluates based on relative air humidity
+#' \code{evaluateDroughtNemaAirhumidity} evaluates based on relative air humidity
 #' values for a target time period as
 #' raster based time series (\code{RasterBrick} or \code{RasterStack} object, if
 #' for a given spatial and temporal point drought or near drought conditions are
@@ -29,7 +29,7 @@ NULL
 #' @seealso
 #' @examples #
 #' @export
-evaluateDroughtNemaAithumidity <- function(airhumidity, airhumidity_t){
+evaluateDroughtNemaAirhumidity <- function(airhumidity, airhumidity_t){
 
   # check if airhumidity and airhumidity_t are of the same length
   if(nlayers(airhumidity) != length(airhumidity_t)){
@@ -46,7 +46,7 @@ evaluateDroughtNemaAithumidity <- function(airhumidity, airhumidity_t){
   }))
 
   # compute for each study period tdi where near drought and drought conditions existed according to the precipitation
-  brickdroughtairhumidity <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("airhumidity", "tdi")) %dopar% {
+  brickdroughtairhumidity <- foreach(studytdi = unique(names(tdi)), .combine = brick, .multicombine = TRUE, .export = c("airhumidity", "tdi")) %do% {
 
     # create a raster with the same spatial properties as airhumidity and fill all values with NA
     rasterdroughtairhumidity <- airhumidity[[1]]
